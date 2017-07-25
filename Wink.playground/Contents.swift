@@ -4,9 +4,10 @@ import PlaygroundSupport
 
 class Wink: UIView {
     
-    var smile: Smile?
+    var smile: Arc?
     var leftEye: Eye?
     var rightEye: Eye?
+    var winkingEye: Arc?
     
     required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
@@ -23,7 +24,23 @@ class Wink: UIView {
             fatalError("The Wink View is not a square!")
         }
         
-        smile = Smile(bounds: bounds, fill: .clear, color: .white, width: 30.0, start: 14.degree, end: 177.5.degree)
+        winkingEye = Arc(bounds: bounds, fill: .clear, color: .white, width: 30.0, start: 330.degree, end: 330.degree)
+        winkingEye?.position = bounds.center
+        layer.addSublayer(layer: winkingEye)
+        
+        let wink = CABasicAnimation(keyPath: .strokeStart)
+            .from(value: 330.degree)
+            .delay(duration: 0.25)
+            .to(value: 300.degree)
+            .till(duration: 0.25)
+            .fill(mode: kCAFillModeForwards)
+            .onCompletion(remove: false)
+            .reverse(value: false)
+        
+        let winkingEyeAnimations = winkingEye?.animate(animations: wink)
+        
+        
+        smile = Arc(bounds: bounds, fill: .clear, color: .white, width: 30.0, start: 14.degree, end: 177.5.degree)
         smile?.position = bounds.center
         layer.addSublayer(layer: smile)
         
@@ -33,7 +50,7 @@ class Wink: UIView {
             .till(duration: 0.25)
             .fill(mode: kCAFillModeForwards)
             .onCompletion(remove: false)
-            .reverse(value: true)
+            .reverse(value: false)
         
         let left = CABasicAnimation(keyPath: .strokeEnd)
             .from(value: 177.5.degree)
@@ -43,15 +60,36 @@ class Wink: UIView {
             .onCompletion(remove: false)
             .reverse(value: true)
         
-//        let smileAnimations = smile?.animate(animations: right, left)
+        let smileAnimations = smile?.animate(animations: right, left)
         
-        leftEye = Eye(bounds: bounds, size: CGSize(width: 30.0, height: 30.0), eye: CGPoint(x: 15.0, y: -25.0))
-        leftEye?.position = center
+        leftEye = Eye(bounds: CGRect(origin: CGPoint.zero, size: CGSize(width: 30.0, height: 30.0)), fill: .white)
+        let leftPosition = GET_POINT(radius: frame.width / 2.0, center: center, angle: 240.radians)
+        leftEye?.position = leftPosition
         layer.addSublayer(layer: leftEye)
+
         
-        rightEye = Eye(bounds: bounds, size: CGSize(width: 30.0, height: 30.0), eye: CGPoint(x: 75.0, y: -25.0))
-        rightEye?.position = center
+        rightEye = Eye(bounds: CGRect(origin: CGPoint.zero, size: CGSize(width: 30.0, height: 30.0)), fill: .white)
+        let rightPosition = GET_POINT(radius: frame.width / 2.0, center: center, angle: 300.radians)
+        rightEye?.position = rightPosition
         layer.addSublayer(layer: rightEye)
+        
+        let animatedPosition = GET_POINT(radius: frame.width / 2.0, center: center, angle: 330.radians)
+        
+        let rightEyeMovementX = CABasicAnimation(keyPath: .positionX)
+            .to(value: animatedPosition.x)
+            .till(duration: 0.25)
+            .fill(mode: kCAFillModeForwards)
+            .onCompletion(remove: false)
+            .reverse(value: false)
+        
+        let rightEyeMovementY = CABasicAnimation(keyPath: .positionY)
+            .to(value: animatedPosition.y)
+            .till(duration: 0.25)
+            .fill(mode: kCAFillModeForwards)
+            .onCompletion(remove: false)
+            .reverse(value: false)
+        
+        rightEye?.animate(animations: rightEyeMovementX, rightEyeMovementY)
         
     }
 }
@@ -61,20 +99,33 @@ class Eye: CAShapeLayer {
         super.init(coder: aDecoder)
     }
     
-    init(bounds: CGRect, fill: UIColor = .white, color: UIColor = .white, size: CGSize, eye point: CGPoint) {
+    init(bounds: CGRect, fill: UIColor = .clear) {
         super.init()
         self.bounds = bounds
         self.fillColor = fill.cgColor
-        draw(size: size, at: point, stroke: color)
+        draw()
     }
     
-    func draw (size: CGSize, at point: CGPoint, stroke: UIColor) {
-        path = UIBezierPath(ovalIn: CGRect(origin: point, size: size)).cgPath
+    func draw () {
+        path = UIBezierPath(ovalIn: bounds).cgPath
+    }
+    
+    @discardableResult func animate(animations: CAAnimation..., offset: CFTimeInterval = 0.5, duration: CFTimeInterval = 0.5, timing: CAMediaTimingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionEaseIn), count: Float = HUGE) -> CAAnimationGroup {
+        
+        let group = CAAnimationGroup()
+        group.animations = animations
+        group.timeOffset = offset
+        group.duration = duration
+        group.timingFunction = timing
+        group.repeatCount = count
+        add(group, forKey: "animation")
+        
+        return group
     }
     
 }
 
-class Smile: CAShapeLayer, Animatable {
+class Arc: CAShapeLayer, Animatable {
     
     required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
@@ -122,9 +173,11 @@ extension CGRect {
     }
 }
 extension Int {
+    var radians: CGFloat { return CGFloat(self) * .pi / 180 }
     var degree: CGFloat { return CGFloat(self) / 360.0 }
 }
 extension Double {
+    var radians: CGFloat { return CGFloat(self) * .pi / 180 }
     var degree: CGFloat { return CGFloat(self) / 360.0 }
 }
 
@@ -169,8 +222,13 @@ extension CABasicAnimation {
         return self
     }
     
+    func delay (duration value: TimeInterval) -> CABasicAnimation {
+        beginTime = CACurrentMediaTime() + value
+        return self
+    }
+    
     enum KeyPath: String {
-        case strokeEnd, strokeStart
+        case strokeEnd, strokeStart, positionX = "position.x", positionY = "position.y"
     }
 }
 
@@ -189,6 +247,6 @@ PlaygroundPage.current.liveView = view
 view.backgroundColor = UIColor.green
 
 // MARK: - Instantiate CareemSmile
-let wink = Wink(frame: CGRect(x: 0, y: 0, width: 120, height: 120))
+let wink = Wink(frame: CGRect(x: 0, y: 0, width: 150, height: 150))
 wink.center = view.center
 view.addSubview(wink)
