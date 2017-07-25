@@ -5,6 +5,8 @@ import PlaygroundSupport
 class Wink: UIView {
     
     var smile: Smile?
+    var leftEye: Eye?
+    var rightEye: Eye?
     
     required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
@@ -41,7 +43,15 @@ class Wink: UIView {
             .onCompletion(remove: false)
             .reverse(value: true)
         
-        let smileAnimations = smile?.animate(animations: right, left)
+//        let smileAnimations = smile?.animate(animations: right, left)
+        
+        leftEye = Eye(bounds: bounds, size: CGSize(width: 30.0, height: 30.0), eye: CGPoint(x: 15.0, y: -25.0))
+        leftEye?.position = center
+        layer.addSublayer(layer: leftEye)
+        
+        rightEye = Eye(bounds: bounds, size: CGSize(width: 30.0, height: 30.0), eye: CGPoint(x: 75.0, y: -25.0))
+        rightEye?.position = center
+        layer.addSublayer(layer: rightEye)
         
     }
 }
@@ -51,31 +61,15 @@ class Eye: CAShapeLayer {
         super.init(coder: aDecoder)
     }
     
-    init(bounds: CGRect, fill: UIColor = .clear, color: UIColor = .white, width: CGFloat, start: CGFloat, end: CGFloat) {
+    init(bounds: CGRect, fill: UIColor = .white, color: UIColor = .white, size: CGSize, eye point: CGPoint) {
         super.init()
         self.bounds = bounds
         self.fillColor = fill.cgColor
-        draw(width: width, stroke: color, start: start, end: end)
+        draw(size: size, at: point, stroke: color)
     }
     
-    func draw (width: CGFloat, stroke: UIColor, start: CGFloat, end: CGFloat) {
-        path = UIBezierPath(ovalIn: bounds).cgPath
-        lineWidth = width
-        strokeColor = stroke.cgColor
-        strokeStart = start
-        strokeEnd = end
-    }
-    
-    @discardableResult func animate(animations: CAAnimation..., offset: CFTimeInterval = 0.5, duration: CFTimeInterval = 0.5, timing: CAMediaTimingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionEaseIn), count: Float = HUGE) -> CAAnimationGroup {
-        let group = CAAnimationGroup()
-        group.animations = animations
-        group.timeOffset = offset
-        group.duration = duration
-        group.timingFunction = timing
-        group.repeatCount = count
-        add(group, forKey: "animation")
-        
-        return group
+    func draw (size: CGSize, at point: CGPoint, stroke: UIColor) {
+        path = UIBezierPath(ovalIn: CGRect(origin: point, size: size)).cgPath
     }
     
 }
@@ -134,7 +128,7 @@ extension Double {
     var degree: CGFloat { return CGFloat(self) / 360.0 }
 }
 
-func point (radius: CGFloat, center: CGPoint, angle: CGFloat) -> CGPoint {
+func GET_POINT (radius: CGFloat, center: CGPoint, angle: CGFloat) -> CGPoint {
     let x = center.x + (radius * cos(angle))
     let y = center.y + (radius * sin(angle))
     return CGPoint(x: x, y: y)
