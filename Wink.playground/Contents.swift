@@ -10,11 +10,19 @@ extension CGRect {
         return CGPoint(x: width / 2.0, y: height / 2.0)
     }
 }
+
 extension Int {
     var radian: CGFloat { return CGFloat(self) * .pi / 180 }
 }
+
 extension Double {
     var radian: CGFloat { return CGFloat(self) * .pi / 180 }
+}
+
+extension UIColor {
+    static var careemGreen: UIColor {
+        return self.init(red: 107/255, green: 182/255, blue: 96/255, alpha: 1)
+    }
 }
 
 func point (radius: CGFloat, center: CGPoint, angle: CGFloat) -> CGPoint {
@@ -23,46 +31,67 @@ func point (radius: CGFloat, center: CGPoint, angle: CGFloat) -> CGPoint {
     return CGPoint(x: x, y: y)
 }
 
-let view = UIView(frame: CGRect(x: 0.0, y: 0.0, width: 360, height: 480))
-PlaygroundPage.current.liveView = view
-
-let smile = Smile(frame: CGRect(x: 0, y: 0, width: 120, height: 120))
-smile.center = view.center
-//view.addSubview(smile)
-
-class Wink: UIView {
+class Smile: UIView {
     
-}
-
-class Smile: UIView, Animatable {
-
-    internal var shapeLayer: CAShapeLayer?
+    var lips: Arc!
     
     override init(frame: CGRect) {
         super.init(frame: frame)
         draw()
     }
     
-    internal func draw () {
+    required init?(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)
+        draw()
+    }
+    
+    internal func draw() {
         guard bounds.isSquare else {
             fatalError("The frame is not a square!")
         }
         
-        shapeLayer = CAShapeLayer(layer: layer)
-        shapeLayer?.path = UIBezierPath(ovalIn: bounds).cgPath
-        shapeLayer?.lineWidth = 30.0
-        shapeLayer?.strokeColor = UIColor.white.cgColor
-        shapeLayer?.fillColor = UIColor.clear.cgColor
-        shapeLayer?.strokeStart = 0.04
-        shapeLayer?.strokeEnd = 0.5
+        lips = Arc(bounds: bounds)
+        lips.draw(start: 0.04, end: 0.5)
+        lips.position = center
+        layer.addSublayer(lips)
     }
     
     func animate() {
+        lips.animate(duration: 0.25)
+    }
+}
+
+class Arc: CAShapeLayer, Animatable {
+    convenience init(bounds: CGRect) {
+        self.init()
+        self.bounds = bounds
+    }
+    
+    func draw(start: CGFloat = 0,
+              end: CGFloat = 0,
+              width: CGFloat? = nil,
+              color: UIColor = UIColor.white) {
         
+        // Set the arc start and end corners using strokes
+        strokeStart = start
+        strokeEnd = end
+        
+        // Set colors
+        strokeColor = color.cgColor
+        fillColor = UIColor.clear.cgColor
+        
+        // Set line width
+        lineWidth = width ?? bounds.width * 0.25
+        
+        // Draw
+        path = UIBezierPath(ovalIn: bounds).cgPath
+    }
+    
+    func animate(duration: TimeInterval) {
         let right = CABasicAnimation(keyPath: .strokeStart)
             .from(value: 0.04)
             .to(value: 0.0)
-            .till(duration: 0.25)
+            .till(duration: duration)
             .fill(mode: kCAFillModeForwards)
             .onCompletion(remove: false)
             .auto(reverses: true)
@@ -70,28 +99,24 @@ class Smile: UIView, Animatable {
         let left = CABasicAnimation(keyPath: .strokeEnd)
             .from(value: 0.5)
             .to(value: 0.25)
-            .till(duration: 0.25)
+            .till(duration: duration)
             .fill(mode: kCAFillModeForwards)
             .onCompletion(remove: false)
             .auto(reverses: true)
         
         let group = CAAnimationGroup()
-        group.animations = [right, left]
+        group.animations = [left, right]
         group.timeOffset = 1.0
         group.duration = 3
         group.timingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionEaseIn)
         group.repeatCount = HUGE
         
-        shapeLayer?.add(group, forKey: "smile")
-        
+        add(group, forKey: nil)
     }
 }
 
 protocol Animatable {
-    var path: UIBezierPath? { get set }
-    var shapeLayer: CAShapeLayer? { get set }
-    func draw()
-    func animate ()
+    func animate(duration: TimeInterval)
 }
 
 extension CABasicAnimation {
@@ -110,12 +135,12 @@ extension CABasicAnimation {
     }
     
     func till(duration: TimeInterval) -> CABasicAnimation {
-        duration = value
+        self.duration = duration
         return self
     }
     
     func fill(mode: String) -> CABasicAnimation {
-        fillMode = value
+        fillMode = mode
         return self
     }
     
@@ -134,5 +159,14 @@ enum CAKeyPath: String {
     case strokeEnd, strokeStart
 }
 
+// MARK: - Playground specific code
+// TODO: - Remove it in app
+let view = UIView(frame: CGRect(x: 0.0, y: 0.0, width: 360, height: 480))
+PlaygroundPage.current.liveView = view
+view.backgroundColor = UIColor.careemGreen
 
-
+// MARK: - Instantiate CareemSmile
+let careemSmile = Smile(frame: CGRect(x: 0, y: 0, width: 120, height: 120))
+careemSmile.center = view.center
+view.addSubview(careemSmile)
+careemSmile.animate()
